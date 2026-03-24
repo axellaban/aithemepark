@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Theme Park Tycoon | Diagnostico Operativo</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+  --grass:#5ab55a;--grass-dark:#3d8c3d;--ui:#c0c0c0;--ui-hi:#ffffff;--ui-sh:#808080;--ui-dk:#404040;
+  --win-blue:#000080;--win-grad:#1084d0;--text:#000000;--muted:#444;--red:#cc2200;--green:#006600;--yellow:#ffdd00;
+  --px:'VT323',monospace;--rd:Tahoma,Verdana,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background-color:var(--grass);background-image:linear-gradient(45deg,var(--grass-dark) 25%,transparent 25%,transparent 75%,var(--grass-dark) 75%),linear-gradient(45deg,var(--grass-dark) 25%,transparent 25%,transparent 75%,var(--grass-dark) 75%);background-size:48px 48px;background-position:0 0,24px 24px;font-family:var(--rd);min-height:100vh;overflow-x:hidden;color:var(--text);}
+#walkers{position:fixed;inset:0;pointer-events:none;z-index:4;overflow:hidden;}
+.walker{position:absolute;font-size:clamp(16px,2.2vw,22px);user-select:none;line-height:1;}
+@keyframes goR{from{transform:translateX(-80px)}to{transform:translateX(calc(100vw + 80px))}}
+@keyframes goL{from{transform:translateX(calc(100vw+80px)) scaleX(-1)}to{transform:translateX(-80px) scaleX(-1)}}
+@keyframes bob{0%,100%{margin-top:0}50%{margin-top:-4px}}
+.wrap{position:relative;z-index:10;max-width:820px;margin:0 auto;padding:32px 18px 90px;}
+h1,h2,h3,h4,.px{font-family:var(--px);font-weight:normal;text-transform:uppercase;}
+.hero{text-align:center;margin-bottom:24px;}
+h1{font-size:clamp(28px,8vw,58px);line-height:1.05;color:#ffd700;text-shadow:3px 3px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;margin-bottom:8px;}
+h1 .bl{color:#87cefa;}
+.sub{font-size:13px;color:#fff;font-weight:bold;text-shadow:1px 1px 2px #000;max-width:620px;margin:0 auto;line-height:1.65;}
+.win{background:var(--ui);border-top:2px solid var(--ui-hi);border-left:2px solid var(--ui-hi);border-right:2px solid var(--ui-dk);border-bottom:2px solid var(--ui-dk);box-shadow:inset -1px -1px 0 var(--ui-sh),inset 1px 1px 0 #e8e8e8,5px 5px 0 rgba(0,0,0,.25);padding:3px;margin-bottom:22px;}
+.wh{background:linear-gradient(90deg,var(--win-blue),var(--win-grad));color:#fff;padding:6px 10px;font-family:var(--px);font-size:clamp(15px,3.8vw,20px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:3px;letter-spacing:.5px;}
+.wh.danger{background:linear-gradient(90deg,#6b0000,#c62828)!important;}
+.wh.success{background:linear-gradient(90deg,#003300,#1b7a1b)!important;}
+.wc{padding:16px 18px 18px;}
+.sl-wrap{background:#fff;border:2px inset var(--ui-sh);padding:16px;text-align:center;margin:14px 0 20px;}
+.sl-num{font-family:var(--px);font-size:clamp(52px,13vw,72px);line-height:1;color:var(--red);text-shadow:2px 2px 0 #bbb;}
+.sl-nm{font-family:var(--px);font-size:clamp(16px,4vw,21px);color:var(--win-blue);min-height:24px;margin-bottom:16px;}
+input[type=range]{width:100%;-webkit-appearance:none;height:11px;background:#000;border:2px solid var(--ui-sh);outline:none;box-shadow:inset 1px 1px 3px rgba(0,0,0,.7);}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:32px;background:var(--ui);border-top:2px solid var(--ui-hi);border-left:2px solid var(--ui-hi);border-right:2px solid var(--ui-dk);border-bottom:2px solid var(--ui-dk);cursor:grab;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px 18px;background:var(--ui);color:var(--text);border-top:2px solid var(--ui-hi);border-left:2px solid var(--ui-hi);border-right:2px solid var(--ui-dk);border-bottom:2px solid var(--ui-dk);font-family:var(--px);font-size:clamp(17px,4.5vw,23px);cursor:pointer;box-shadow:inset -1px -1px 0 var(--ui-sh),inset 1px 1px 0 #e8e8e8;}
+.btn:active:not(:disabled){border-top:2px solid var(--ui-dk);border-left:2px solid var(--ui-dk);border-right:2px solid var(--ui-hi);border-bottom:2px solid var(--ui-hi);transform:translate(1px,1px);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-li{background:#0077b5;color:#fff;border-top-color:#55aaff;border-left-color:#55aaff;border-right-color:#003366;border-bottom-color:#003366;margin-top:10px;}
+#park-map-wrap{background:#000;border:3px solid #333;border-top:2px solid var(--ui-hi);border-left:2px solid var(--ui-hi);border-right:2px solid var(--ui-dk);border-bottom:2px solid var(--ui-dk);padding:8px;margin-bottom:16px;position:relative;min-height:220px;overflow:hidden;}
+#park-map-wrap::before{content:'PARQUE EN CONSTRUCCION';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--px);font-size:clamp(20px,5vw,28px);color:#333;pointer-events:none;transition:opacity .5s;}
+#park-map-wrap.has-zones::before{opacity:0;}
+#zones-container{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;position:relative;z-index:2;}
+.zone{background:#111;border:1px solid #333;border-radius:2px;padding:6px 4px;text-align:center;min-height:160px;display:flex;flex-direction:column;align-items:center;transition:all .3s ease;position:relative;overflow:hidden;}
+.zone.lit{border-color:#555;}
+.zone-label{font-family:var(--px);font-size:clamp(11px,1.8vw,14px);color:#666;letter-spacing:.5px;margin-bottom:4px;transition:color .3s;}
+.zone.lit .zone-label{color:#aaa;}
+.zone-art{font-size:clamp(7.5px,1.8vw,11px);line-height:1.3;color:#444;font-family:'Courier New',monospace;white-space:pre;transition:all .4s ease;flex:1;display:flex;align-items:center;justify-content:center;text-align:left;overflow:hidden;max-width:100%;}
+.zone-score{font-family:var(--px);font-size:clamp(13px,2vw,16px);color:#555;margin-top:4px;transition:color .3s;}
+.zone.tier1 .zone-art{color:#663300;}.zone.tier1 .zone-score{color:#996644;}.zone.tier1 .zone-label{color:#cc7744;}
+.zone.tier2 .zone-art{color:#338833;}.zone.tier2 .zone-score{color:#44cc44;}.zone.tier2 .zone-label{color:#66ff66;}
+.zone.tier3 .zone-art{color:#00aaff;}.zone.tier3 .zone-score{color:#44ddff;}.zone.tier3 .zone-label{color:#aaeeff;}
+.zone.tier3{border-color:#006688;box-shadow:0 0 12px rgba(0,180,255,.2);}
+.zone.tier1{border-color:#442200;}.zone.tier2{border-color:#224422;}
+@keyframes buildFlash{0%{background:#ffffff10}30%{background:#ffffff30}100%{background:transparent}}
+.zone.building{animation:buildFlash .6s ease-out;}
+#rating-strip{background:#000;border:2px solid #333;padding:8px 12px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.rating-label{font-family:var(--px);font-size:clamp(14px,3vw,18px);color:#888;white-space:nowrap;}
+#rating-stars{font-family:var(--px);font-size:clamp(18px,4vw,24px);letter-spacing:2px;transition:all .4s;}
+#rating-num{font-family:var(--px);font-size:clamp(20px,4.5vw,28px);color:#ffdd00;margin-left:auto;white-space:nowrap;}
+#rating-bar-track{flex:1;min-width:80px;height:14px;background:#111;border:1px solid #333;}
+#rating-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#004400,#00ff44);transition:width .5s ease;}
+.prog-wrap{margin-bottom:14px;}
+.prog-row{display:flex;justify-content:space-between;font-size:11px;font-weight:bold;color:var(--muted);margin-bottom:3px;}
+.prog-track{height:18px;background:#fff;border:2px inset var(--ui-sh);padding:2px;}
+.prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--win-blue),#00ccff);transition:width .3s ease;}
+.q-text{font-size:clamp(14px,3.2vw,16px);font-weight:bold;margin-bottom:18px;line-height:1.45;}
+.opts{display:flex;flex-direction:column;gap:9px;margin-bottom:20px;}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;background:#fff;border:2px inset var(--ui-sh);cursor:pointer;font-size:13px;font-weight:bold;line-height:1.4;transition:background .08s;}
+.opt:hover{background:#fffde0;}.opt.sel{background:var(--win-blue);color:#fff;}
+.opt-l{width:21px;min-width:21px;height:21px;background:var(--ui);border:2px outset #fff;display:flex;align-items:center;justify-content:center;font-family:var(--px);font-size:16px;}
+.opt.sel .opt-l{background:#ffff00;color:#000;border-color:#ccc;}
+.sus{text-align:center;padding:28px 10px;}
+.sus-spin{font-size:56px;display:block;margin:0 auto 14px;animation:spin 2.5s linear infinite;}
+.sus-title{font-size:clamp(20px,5vw,28px);margin-bottom:12px;}
+.sus-console{font-family:var(--px);font-size:clamp(16px,3.8vw,21px);color:var(--text);margin-bottom:4px;min-height:26px;}
+.sus-matrix{font-size:10px;color:#888;font-weight:bold;word-break:break-all;padding:0 6px;}
+.sus-prog{height:14px;background:#fff;border:2px inset var(--ui-sh);padding:2px;margin-top:14px;}
+.sus-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--win-blue),#00ccff);transition:width .5s;}
+.park-reveal-wrap{background:#000;border:3px solid #333;border-top:2px solid var(--ui-hi);border-left:2px solid var(--ui-hi);border-right:2px solid var(--ui-dk);border-bottom:2px solid var(--ui-dk);padding:10px;margin-bottom:18px;position:relative;overflow:hidden;min-height:180px;}
+.park-open-banner{font-family:var(--px);font-size:clamp(18px,4.5vw,26px);color:#ffdd00;text-align:center;padding:8px 0 10px;text-shadow:0 0 10px #ff8800;letter-spacing:2px;animation:glow 1.2s ease-in-out infinite alternate;}
+@keyframes glow{from{text-shadow:0 0 6px #ff8800}to{text-shadow:0 0 18px #ffdd00,0 0 30px #ff4400}}
+#result-zones{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.rzone{background:#111;border:1px solid #333;padding:6px 4px;text-align:center;min-height:170px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;}
+.rzone-label{font-family:var(--px);font-size:clamp(10px,1.6vw,13px);margin-bottom:4px;}
+.rzone-art{font-size:clamp(7.5px,1.8vw,11px);line-height:1.3;font-family:'Courier New',monospace;white-space:pre;flex:1;display:flex;align-items:center;justify-content:center;text-align:left;overflow:hidden;max-width:100%;}
+.rzone-score{font-family:var(--px);font-size:clamp(12px,1.8vw,15px);margin-top:4px;}
+.rzone.tier1{border-color:#442200;}.rzone.tier1 .rzone-label{color:#cc7744;}.rzone.tier1 .rzone-art{color:#663300;}.rzone.tier1 .rzone-score{color:#996644;}
+.rzone.tier2{border-color:#224422;}.rzone.tier2 .rzone-label{color:#66ff66;}.rzone.tier2 .rzone-art{color:#338833;}.rzone.tier2 .rzone-score{color:#44cc44;}
+.rzone.tier3{border-color:#006688;box-shadow:0 0 14px rgba(0,180,255,.25);}.rzone.tier3 .rzone-label{color:#aaeeff;}.rzone.tier3 .rzone-art{color:#00aaff;}.rzone.tier3 .rzone-score{color:#44ddff;}
+@keyframes revealZone{0%{opacity:0;transform:scale(.85) translateY(8px)}60%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+.rzone.revealed{animation:revealZone .5s ease-out both;}
+.res-hero{text-align:center;background:#fff;border:2px inset var(--ui-sh);padding:16px;margin-bottom:16px;}
+.arch-badge{display:inline-block;background:var(--win-blue);color:#fff;font-family:var(--px);font-size:clamp(14px,3.5vw,19px);padding:4px 14px;margin-bottom:10px;border:2px outset #fff;}
+.res-big{font-family:var(--px);font-size:clamp(70px,17vw,92px);line-height:1;color:var(--red);text-shadow:2px 2px 0 #ccc;}
+.res-nm{font-family:var(--px);font-size:clamp(20px,5vw,28px);margin-bottom:10px;text-transform:uppercase;}
+.res-desc{font-size:13px;color:var(--muted);max-width:500px;margin:0 auto;font-weight:bold;line-height:1.55;}
+.flair{display:inline-block;font-family:var(--px);font-size:clamp(12px,3vw,18px);color:var(--red);background:#ffff00;padding:3px 10px;border:2px solid #000;margin-bottom:10px;animation:blink .55s step-end infinite;letter-spacing:1px;}
+.gap-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:14px;}
+.gap-box{background:#fff;border:2px inset var(--ui-sh);padding:12px;text-align:center;}
+.gap-lbl{font-family:var(--px);font-size:clamp(14px,3vw,17px);color:var(--muted);}
+.gap-val{font-family:var(--px);font-size:clamp(30px,8vw,42px);}
+.gap-arr{font-family:var(--px);font-size:clamp(22px,5vw,30px);color:#888;text-align:center;}
+.gap-msg{background:#fff;border:2px solid var(--text);padding:12px 14px;font-size:13px;font-weight:bold;line-height:1.5;margin-bottom:16px;}
+.dtile{padding:12px 14px;background:#fff;border:2px inset var(--ui-sh);font-size:13px;font-weight:bold;line-height:1.5;}
+.ap-step{margin-bottom:12px;padding:12px 14px;background:#fff;border:2px inset var(--ui-sh);}
+.ap-step h4{font-family:var(--px);font-size:clamp(15px,3.5vw,18px);color:var(--win-blue);margin-bottom:6px;}
+.ap-step p{font-size:13px;font-weight:bold;color:var(--text);line-height:1.5;min-height:38px;}
+.social-pre{background:#fff;border:2px inset var(--ui-sh);padding:12px;font-size:11.5px;white-space:pre-wrap;line-height:1.6;font-weight:500;max-height:260px;overflow-y:auto;margin-top:12px;}
+.screen{display:none;}.screen.active{display:block;animation:fadeUp .18s ease-out both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{100%{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes shake{0%,100%{transform:translateX(0)}15%{transform:translateX(-5px) rotate(-.4deg)}30%{transform:translateX(5px) rotate(.4deg)}50%{transform:translateX(-3px)}70%{transform:translateX(3px)}90%{transform:translateX(-1px)}}
+.shake-once{animation:shake .5s ease both;}
+.credits{text-align:center;font-family:var(--px);font-size:13px;color:#fff;margin-top:16px;text-shadow:2px 2px 0 #000;line-height:1.6;padding-bottom:16px;}
+.credits span{color:var(--yellow);}
+#radarCanvas{display:block;width:100%;height:auto;}
+@media(max-width:560px){#radar-block > div{grid-template-columns:1fr!important;}}
+@media(max-width:540px){.wc{padding:12px 10px 14px;}.win{padding:2px;}.wh{font-size:14px;padding:5px 8px;}#zones-container,#result-zones{grid-template-columns:repeat(5,1fr);gap:3px;}.zone,.rzone{min-height:120px;padding:4px 2px;}}
+</style>
+</head>
+<body>
+<div id="walkers"></div>
+<div class="wrap">
+
+<div id="s-start" class="screen active">
+  <div class="hero">
+    <div style="display:inline-block;background:var(--win-blue);color:#fff;font-family:var(--px);font-size:clamp(13px,3vw,17px);padding:4px 16px;border:2px outset #fff;margin-bottom:12px;letter-spacing:1px;">[ DIAGNOSTICO DE MADUREZ EN IA ]</div>
+    <h1>AI Theme Park <span class="bl">Tycoon</span> 🎢</h1>
+    <p class="sub" style="font-size:14px;line-height:1.75;">
+      <strong style="color:#ffdd00;">Tu empresa es un parque tematico.</strong> Cada area operativa es una atraccion.<br>
+      Este diagnostico mide cuales estan funcionando — y cuales estan en llamas.<br>
+      <span style="opacity:.85;">10 preguntas. Sin respuestas politicamente correctas. Sin formulario. 4 minutos.</span>
+    </p>
+  </div>
+  <div class="win">
+    <div class="wh"><div>NUEVA SIMULACION</div><div>_ [] X</div></div>
+    <div class="wc">
+      <div style="text-align:center;margin-bottom:14px;">
+        <h3 style="font-size:clamp(18px,5vw,23px);margin-bottom:6px;">FASE 1: EXPECTATIVA DIRECTIVA</h3>
+        <p style="font-size:12px;color:var(--muted);font-weight:bold;">En que nivel crees que esta tu empresa? Se honesto — el parque no miente.</p>
+      </div>
+      <div class="sl-wrap">
+        <div class="sl-num" id="p-val">5</div>
+        <div class="sl-nm" id="p-nm">Business-Aware Systems</div>
+        <input type="range" id="p-sl" min="1" max="9" value="5" step="1">
+        <div id="sl-tooltip" style="font-size:12px;color:var(--muted);font-weight:bold;margin-top:10px;line-height:1.5;min-height:36px;opacity:.7;transition:opacity .2s;text-align:left;padding:0 4px;">La IA ya conoce tu empresa. Tiene acceso a tu data interna y entiende como defines las cosas.</div>
+      </div>
+      <button class="btn" onclick="A.start()">ABRIR PARQUE AL PUBLICO 🎟️</button>
+    </div>
+  </div>
+</div>
+
+<div id="s-quiz" class="screen">
+  <div id="rating-strip">
+    <span class="rating-label">MADUREZ DE TU EMPRESA:</span>
+    <div id="rating-bar-track"><div id="rating-bar-fill"></div></div>
+    <span id="rating-stars">☆☆☆☆☆</span>
+    <span id="rating-num">0 / 9</span>
+  </div>
+  <div id="park-map-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+      <span style="font-family:var(--px);font-size:clamp(14px,3vw,18px);color:#aaa;letter-spacing:.5px;">TU EMPRESA — CONSTRUCCION EN TIEMPO REAL</span>
+      <span style="font-size:11px;color:#555;font-weight:bold;">cada zona = un eje operativo · se actualiza con cada respuesta</span>
+    </div>
+    <div id="zones-container"></div>
+  </div>
+  <div class="win" id="q-card">
+    <div class="wh" id="q-wh">
+      <div id="q-hdr">AUDITORIA EN CURSO</div>
+      <div><span id="q-cnt">1/10</span></div>
+    </div>
+    <div class="wc">
+      <div class="prog-wrap">
+        <div class="prog-row"><span id="q-dim-lbl">ESTRATEGIA</span><span id="q-pct">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="q-prog"></div></div>
+      </div>
+      <div id="q-attraction" style="text-align:center;padding:14px 8px 10px;background:#fff;border:2px inset var(--ui-sh);margin-bottom:14px;">
+        <div id="q-attr-emoji" style="font-size:clamp(36px,10vw,52px);line-height:1;margin-bottom:6px;">🎢</div>
+        <div id="q-attr-name" style="font-family:var(--px);font-size:clamp(16px,4vw,22px);color:var(--win-blue);margin-bottom:3px;">MONTANA RUSA ESTRATEGICA</div>
+        <div id="q-attr-tagline" style="font-size:12px;font-weight:bold;color:var(--muted);font-style:italic;">Bienvenido a la Montana Rusa Estrategica</div>
+      </div>
+      <div class="q-text" id="q-txt">—</div>
+      <div class="opts" id="q-opts"></div>
+      <button class="btn" id="btn-next" onclick="A.next()" disabled>CONFIRMAR Y AVANZAR ▶</button>
+    </div>
+  </div>
+</div>
+
+<div id="s-calc" class="screen">
+  <div class="win">
+    <div class="wh"><div>SIMULANDO ANO FISCAL</div><div>_ [] X</div></div>
+    <div class="wc sus">
+      <span class="sus-spin">🎡</span>
+      <h2 class="sus-title">CALCULANDO STATS DEL PARQUE...</h2>
+      <div class="sus-console" id="sus-line">Iniciando diagnostico...</div>
+      <div class="sus-matrix" id="sus-mx">LOADING.EXE</div>
+      <div class="sus-prog"><div class="sus-fill" id="sus-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="s-res" class="screen">
+  <div id="sticky-bar" style="position:sticky;top:0;z-index:50;background:var(--win-blue);color:#fff;font-family:var(--px);font-size:clamp(13px,3vw,17px);padding:6px 14px;display:none;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;letter-spacing:.5px;border-bottom:2px solid #000;box-shadow:0 3px 8px rgba(0,0,0,.4);">
+    <span id="sb-label">NIVEL — · —</span>
+    <span id="sb-gap" style="font-size:clamp(11px,2.5vw,14px);opacity:.85;"></span>
+  </div>
+  <div class="win">
+    <div class="wh" id="res-wh"><div>REPORTE DE FIN DE ANO — TU PARQUE</div><div>_ [] X</div></div>
+    <div class="wc">
+      <div id="reveal-countdown" style="text-align:center;padding:20px 0 10px;display:none;">
+        <div style="font-family:var(--px);font-size:clamp(16px,4vw,22px);color:#888;margin-bottom:8px;letter-spacing:2px;">ABRIENDO PUERTAS DEL PARQUE...</div>
+        <div id="countdown-num" style="font-family:var(--px);font-size:clamp(60px,15vw,80px);color:var(--yellow);line-height:1;text-shadow:2px 2px 0 #000;animation:blink .4s step-end infinite;">3</div>
+      </div>
+      <div class="park-open-banner" id="park-banner" style="display:none;">PARQUE ABIERTO AL PUBLICO</div>
+      <div class="park-reveal-wrap" id="park-reveal-wrap" style="display:none;"><div id="result-zones"></div></div>
+      <div class="res-hero" id="res-hero-block" style="display:none;">
+        <div><span class="arch-badge" id="r-arch">—</span></div>
+        <div style="font-family:var(--px);font-size:clamp(13px,3vw,16px);color:var(--muted);margin-bottom:2px;letter-spacing:.5px;">TU EMPRESA OPERA COMO UN PARQUE DE NIVEL</div>
+        <div class="res-big" id="r-num">—</div>
+        <div class="flair" id="r-flair">—</div>
+        <div class="res-nm" id="r-nm">—</div>
+        <p class="res-desc" id="r-desc">—</p>
+      </div>
+      <div class="gap-row" id="gap-block" style="display:none;">
+        <div class="gap-box"><div class="gap-lbl">EXPECTATIVA</div><div class="gap-val" style="color:var(--red)" id="g-perc">—</div></div>
+        <div class="gap-arr">→</div>
+        <div class="gap-box"><div class="gap-lbl">REALIDAD</div><div class="gap-val" style="color:var(--win-blue)" id="g-real">—</div></div>
+      </div>
+      <div class="gap-msg" id="g-msg" style="display:none;">—</div>
+      <div id="radar-block" style="display:none;margin-bottom:18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;">
+          <div class="win" style="margin-bottom:0;">
+            <div class="wh"><div>RADAR OPERATIVO</div></div>
+            <div class="wc" style="padding:10px;background:#fff;border:2px inset var(--ui-sh);"><canvas id="radarCanvas" style="width:100%;height:auto;display:block;"></canvas></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="win" style="margin-bottom:0;"><div class="wh"><div>EN LA PRACTICA</div></div><div class="wc dtile" id="r-ex" style="padding:10px 12px;"></div></div>
+            <div class="win" style="margin-bottom:0;"><div class="wh danger"><div>CUELLO DE BOTELLA</div></div><div class="wc dtile" id="r-risk" style="padding:10px 12px;"></div></div>
+            <div class="win" style="margin-bottom:0;"><div class="wh success"><div>EL PROXIMO SALTO</div></div><div class="wc dtile" id="r-why" style="padding:10px 12px;"></div></div>
+          </div>
+        </div>
+      </div>
+      <div id="ap-block" style="display:none;margin:0 0 6px">
+        <h3 class="px" style="font-size:clamp(18px,4.5vw,24px);margin-bottom:4px;">PANEL DE MANTENIMIENTO</h3>
+        <p style="font-size:12px;color:var(--muted);font-weight:bold;">Sin humo. Lo que haces la semana que viene.</p>
+      </div>
+      <div id="ap-wrap"></div>
+      <div class="win" id="social-block" style="margin-top:28px;margin-bottom:0;display:none;">
+        <div class="wh"><div>FOTO EN LA MONTANA RUSA</div></div>
+        <div class="wc" style="text-align:center">
+          <h3 class="px" style="font-size:clamp(17px,4vw,21px);margin-bottom:6px;">MOSTRA TUS STATS AL MUNDO</h3>
+          <p style="font-size:12px;color:var(--muted);font-weight:bold;">Los lideres con autocritica real ganan mas. Comparti antes de que lo haga un competidor.</p>
+          <div class="social-pre" id="li-pre">—</div>
+          <button class="btn btn-li" onclick="A.copy(this)">COPIAR PARA LINKEDIN</button>
+        </div>
+      </div>
+      <div id="restart-block" style="text-align:center;margin-top:22px;display:none;">
+        <button class="btn" onclick="location.reload()">VOLVER A JUGAR</button>
+      </div>
+    </div>
+  </div>
+  <div class="credits" id="credits-block" style="display:none;">DIAGNOSTICO AUDITADO POR:<br>
+    <span>THE BOARD</span> (OGILVY, SUBY, BRUNSON, VAYNERCHUK) &amp; <span>AXEL LABAN ARZUBI</span>
+  </div>
+</div>
+
+</div>
+<script>
+const LV=[
+  {n:1,name:"Awareness",desc:"Hablan de armar el mejor parque del mundo. No hay planos, no hay presupuesto. Hay entusiasmo directivo y cero ejecucion.",example:"El CEO manda un articulo al grupo de WhatsApp del board: Hay que hacer algo con la IA. Nadie responde con un plan.",risk:"Cada semana sin accion es costo de oportunidad puro. El competidor que arranca hoy con Shadow AI va a tener 12 meses de ventaja cuando vos estes todavia evaluando.",why:"Antes de standardizar, necesitas saber que pasa en la trinchera. El valor ya se esta capturando por empleados solos, sin gobernanza. Haz eso visible primero."},
+  {n:2,name:"Shadow AI",desc:"Tus empleados ya encontraron la solucion. El problema es que lo hacen solos, con cuentas personales, y la empresa no capitaliza nada.",example:"Tu mejor redactora de contratos usa ChatGPT personal todos los dias. Ahorra 3 horas semanales. RRHH no lo sabe. IT no lo sabe. El dato no existe para la empresa.",risk:"Riesgo juridico real: datos confidenciales de clientes en servidores externos sin contrato de procesamiento. Y las ganancias de productividad existen pero son individuales, no escalables.",why:"Estandarizar no significa frenar. Significa capturar el aprendizaje organico que ya pasa y convertirlo en ventaja institucional. El talento que ya experimento tiene el playbook."},
+  {n:3,name:"Tool Standardization",desc:"IT aprobo las herramientas. Hay politica. Hay licencias. El problema: las herramientas no cambiaron ningun proceso. Solo digitalizaron el caos.",example:"Copilot lleva 4 meses activo en toda la empresa. El 70% del equipo lo uso exactamente una vez. El uso real: 8 personas de 120.",risk:"Estas quemando entre 20 y 50 dolares por usuario por mes en suscripciones que se usan como un Google Translate glorificado. Sin workflows rediseniados, la herramienta es cosmetica.",why:"El ROI de la IA no viene de tener la herramienta, viene de redinieniar el proceso asumiendo que la herramienta existe. Elige un workflow de alto volumen y reconstruyelo desde cero con IA adentro."},
+  {n:4,name:"Workflow Integration",desc:"La IA ya no es opcional en algunos procesos. Se midio el impacto. Hay evidencia. Pero todavia no sabe nada de tu negocio especifico.",example:"Ningun ticket de soporte pasa a nivel 2 sin que la IA haya generado el resumen estructurado previo. El tiempo de resolucion bajo 40%. Esta medido.",risk:"La IA es eficiente pero ciega. Ejecuta el paso mas rapido, pero no sabe si ese cliente es VIP o si tiene deuda. El contexto vive solo en la cabeza de los veteranos.",why:"El salto esta en conectar la IA a tus datos propios: CRM, ERP, historial de clientes. Cuando la IA puede responder dado lo que se de este cliente, cambia todo."},
+  {n:5,name:"Business-Aware Systems",desc:"La IA ya conoce tu empresa. Tiene acceso a tu data interna y entiende como defines las cosas. Las respuestas son contextuales, no genericas.",example:"Un gerente de ventas pregunta que clientes estan en riesgo de churn este mes. La IA usa la definicion de la empresa, cruza el CRM vivo y da una lista rankeada con razones.",risk:"Tenes el diagnostico perfecto. El cuello de botella ahora es la ejecucion humana. La IA ve el problema; un humano tiene que decidir, aprobar y actuar. Esa latencia es tu nuevo techo.",why:"El siguiente paso no es mas datos, es autonomia supervisada. Identifica los 3 procesos donde la IA ya tiene contexto suficiente para ejecutar dentro de reglas claras sin aprobacion en cada paso."},
+  {n:6,name:"Supervised Autonomy",desc:"La IA ejecuta. Los humanos supervisan. El equipo paso de hacedores a controladores de calidad de procesos automaticos.",example:"El agente detecta un ticket, clasifica el problema, chequea el historial, redacta la respuesta, procesa el reembolso si aplica, y solo escala si el cliente pide hablar con un humano.",risk:"Sprawl de agentes: tenes 12 automatizaciones corriendo en paralelo y nadie tiene el mapa de que hace cada una. Cuando algo se rompe, la busqueda del culpable toma mas tiempo que lo ahorrado.",why:"Necesitas un layer de orquestacion. Los agentes tienen que conocerse entre si. El de ventas tiene que saber que hizo el de soporte ayer. Sin eso, la empresa se vuelve esquizofrenica a escala."},
+  {n:7,name:"Role-Based AI Teammates",desc:"Los roles fueron rediniesados asumiendo IA como colaborador nativo. No hay tarea pensada para hacerse sola. Cada funcion tiene su copiloto.",example:"El analista de marketing no pide datos a finanzas: su agente cruza metricas con el agente de finanzas y le trae el analisis listo. El humano evalua y decide.",risk:"Silos sinteticos: los agentes de cada area optimizan localmente pero no tienen vision de empresa. El agente de ventas promete algo que el agente de operaciones no puede cumplir.",why:"El proximo salto es una capa de inteligencia compartida: todos los agentes leyendo de la misma fuente de verdad en tiempo real."},
+  {n:8,name:"Unified Intelligence Platform",desc:"Una sola sala de control. Todos los sistemas comparten la misma verdad. Los lideres pueden hacer cualquier pregunta cross-funcional y obtener la respuesta en segundos.",example:"CFO pregunta que pasa con el flujo de caja si el churn de SMB sube 2% este trimestre. El sistema cruza ventas, soporte y finanzas y da 3 escenarios con probabilidades.",risk:"La latencia ejecutiva. El sistema te muestra el futuro con 3 semanas de anticipacion. Pero si la burocracia aprobatoria tarda 3 semanas, la ventaja desaparece. El cuello de botella sos vos.",why:"El loop de decision tiene que acortarse al ritmo de la maquina. Eso implica pre-autorizar rangos de accion: la IA puede ejecutar X dentro de estos parametros sin pedir permiso cada vez."},
+  {n:9,name:"Adaptive Organization",desc:"El nirvana operativo. La empresa detecta seniales, ajusta procesos y reasigna recursos de forma autonoma. Los humanos definen vision y valores. La maquina ejecuta.",example:"El algoritmo detecta caida de conversion, ajusta la pauta, modifica el precio dinamico y notifica al equipo con el analisis, todo antes de que nadie vea el problema.",risk:"Optimizacion sin valores. Si el algoritmo maximiza EBITDA sin restricciones eticas, puede tomar decisiones que destruyen la marca en 24 horas. La gobernanza humana no es opcional.",why:"Mantener el estado adaptativo requiere reinversion continua en gobernanza, diversidad de datos y revision de guardarrailes. No llegaste a la cima, entraste a un modo de mantenimiento permanente."}
+];
+
+const ART={
+  0:{1:"  _____\n /     \\\n| PLAN? |\n \\___/\n  | |\n~~OBRAS~~",2:" .-==-.\n|OFFICE|\n|  AI  |\n'------'\n  /||||\n METING",3:"  /\\  /\\\n /  \\/  \\\n| BOARD |\n| ROOM  |\n|_AI-OK_|\n [||||]"},
+  1:{1:" ???\n[?????]\n POLICY\n  N/A\n (tsu)",2:"[RULES]\n .----.\n |PDF |\n | v1 |\n '----'\n BASIC",3:" .===.\n|AUDIT|\n|LOG  |\n|DLP  |\n'====='\nSECURE"},
+  2:{1:" EXCEL\n[PASTE]\n  |||\n[manual]\nNO DATA",2:" [CRM]\n  /|\\\n / | \\\n[DATA]\n \\|/\nPARTIAL",3:" .===.\n|LAKE |\n|-----|\n|LIVE |\n|DATA |\n'====='"},
+  3:{1:" TOOLS\n  ___\n |   |\n | ? |\n |___|\nNO USE",2:"COPILOT\n  /\\\n /AI\\\n/____\\\n|USER|\nBASIC",3:" AGENT\n  /\\\n /BOT\\\n/----\\\n|FLOW|\nPOWER"},
+  4:{1:" HUMAN\n  O\n /|\\\n / \\\nMANUAL",2:" AI+HUM\n O  BOT\n/|\\  |\n/ \\ REV\nHYBRID",3:"  BOTS\n /AUTO\\\n|LOOP  |\n|24/7  |\n'------'"}
+};
+
+const ZONE_NAMES=["ESTRATEGIA","GOBERNANZA","DATOS","ADOPCION","AUTONOMIA"];
+
+const ATTRACTIONS=[
+  {emoji:"🎢",name:"MONTANA RUSA ESTRATEGICA",tagline:"Bienvenido a la Montana Rusa Estrategica",color:"linear-gradient(90deg,#6b0000,#c0392b)"},
+  {emoji:"🎡",name:"VUELTA AL MUNDO DE GOBERNANZA",tagline:"Bienvenido a la Vuelta al Mundo de Gobernanza",color:"linear-gradient(90deg,#1a3a00,#27ae60)"},
+  {emoji:"🌊",name:"TOBOGAN ACUATICO DE DATOS",tagline:"Bienvenido al Tobogan Acuatico de Datos",color:"linear-gradient(90deg,#003366,#2980b9)"},
+  {emoji:"🍕",name:"PUESTO DE PIZZA DE ADOPCION",tagline:"Bienvenido al Puesto de Pizza de Adopcion",color:"linear-gradient(90deg,#7a4000,#e67e22)"},
+  {emoji:"👻",name:"CASA DEL TERROR DE AUTONOMIA",tagline:"Bienvenido a la Casa del Terror de Autonomia",color:"linear-gradient(90deg,#1a0033,#8e44ad)"}
+];
+
+const QS=[
+  {dim:0,text:"Si pido el presupuesto asignado a iniciativas de IA este anio, que encuentro?",opts:[{t:"Cero linea presupuestaria. Lo vemos el anio que viene.",s:1},{t:"Suscripciones SaaS aprobadas caso a caso cuando alguien las pide.",s:3},{t:"Budget especifico por area con OKRs de adopcion asignados.",s:6},{t:"Capital masivo en infraestructura propia: datos, agentes, modelos.",s:9}]},
+  {dim:0,text:"Que pasa si maniana la IA deja de funcionar en toda la empresa?",opts:[{t:"Nada. Seguimos igual que antes.",s:1},{t:"Nos quejamos pero en 20 min encontramos el workaround manual.",s:3},{t:"Se para un proceso core. Hay un plan de contingencia documentado.",s:6},{t:"Se para la empresa. No hay modo manual para lo que la IA ejecuta.",s:9}]},
+  {dim:1,text:"Podes garantizar hoy que ningun empleado subio un contrato confidencial a ChatGPT personal?",opts:[{t:"No puedo. Cruzo los dedos.",s:1},{t:"Firmaron una politica. Confio en que la cumplen.",s:3},{t:"Usamos herramientas Enterprise con data residency auditada.",s:6},{t:"Tenemos DLP activo que anonimiza datos antes de que salgan a cualquier API.",s:9}]},
+  {dim:1,text:"Sale una herramienta de IA que puede impactar un proceso clave. Cuanto tarda en estar disponible?",opts:[{t:"El mas curioso la descarga. IT se entera 3 meses despues.",s:2},{t:"IT la bloquea por default. Hay que armar un caso de negocio y esperar.",s:3},{t:"Hay un proceso de triage de 48-72 hs para evaluar seguridad y activarla.",s:7},{t:"Tenemos un sandbox con datos sinteticos para testearla el mismo dia.",s:9}]},
+  {dim:2,text:"Si le pregunto a la IA cuales son los 10 clientes con mayor riesgo de irse este mes, que pasa?",opts:[{t:"Alucina o da respuesta generica porque no tiene acceso a nuestros datos.",s:2},{t:"Un analista hace copy-paste del CRM para armarle el contexto a mano.",s:4},{t:"Consulta el CRM en vivo pero le falta cruzar con datos de soporte o finanzas.",s:6},{t:"Cruza CRM, soporte, pagos y NPS; devuelve la lista rankeada con razones.",s:9}]},
+  {dim:2,text:"Con que frecuencia se actualiza la informacion disponible para la IA?",opts:[{t:"No tiene info propia. Solo trabaja con lo que el usuario le pega en el prompt.",s:1},{t:"Subimos documentos y manuales cada tanto. Sin frecuencia definida.",s:3},{t:"Integraciones activas con CRM y ERP. Near-real-time.",s:7},{t:"Data Lake centralizado. Cualquier cambio se refleja al instante.",s:9}]},
+  {dim:3,text:"Si miro la pantalla del 80% de tu equipo a las 3 PM, que estan haciendo?",opts:[{t:"Excel, correos, Google. Una pestania de IA ignorada en el fondo.",s:2},{t:"Usan IA para acortar textos o pulir ideas. Sigue siendo asistente cosmetico.",s:4},{t:"Tienen un agente especializado con el que trabajan como un analista junior.",s:7},{t:"Revisan y aprueban decisiones que los agentes ya prepararon.",s:9}]},
+  {dim:3,text:"Como midieron el impacto real de la IA en productividad el ultimo trimestre?",opts:[{t:"No se midio. Se siente que trabajamos mejor.",s:1},{t:"Miramos cuanta gente tiene cuenta activa y si se loguearon.",s:3},{t:"Medimos horas-hombre ahorradas en procesos especificos.",s:6},{t:"Medimos impacto directo en EBITDA, tiempos de ciclo y NPS.",s:9}]},
+  {dim:4,text:"En el proceso de ventas, quien aprieta el boton de Enviar propuesta?",opts:[{t:"Siempre un humano. La IA solo ayudo a redactar el texto.",s:2},{t:"La IA arma el paquete completo, pero un humano lo revisa y ejecuta.",s:5},{t:"Para cuentas pequenias, la IA envia sola. Para enterprise, pasa a revision.",s:7},{t:"El sistema gestiona el pipeline completo y escala excepciones al humano.",s:9}]},
+  {dim:4,text:"El CAC subio 20% este mes. Como reacciona la empresa?",opts:[{t:"Nos enteramos a fin de mes y empezamos a buscar el porque.",s:2},{t:"Alguien ve el dashboard y arma una reunion para la semana siguiente.",s:4},{t:"El sistema alerta proactivamente y sugiere 3 ajustes con estimacion de impacto.",s:7},{t:"El sistema pausa campanas ineficientes y reasigna el presupuesto solo.",s:9}]}
+];
+
+const A={
+  perc:5,curQ:0,dimScores:[[],[],[],[],[]],dimAvg:[0,0,0,0,0],sel:null,mood:'neutral',
+
+  init(){
+    const sl=document.getElementById('p-sl');
+    const tip=document.getElementById('sl-tooltip');
+    sl.addEventListener('input',e=>{
+      this.perc=+e.target.value;
+      document.getElementById('p-val').textContent=this.perc;
+      document.getElementById('p-nm').textContent=LV[this.perc-1].name;
+      if(tip){tip.textContent=LV[this.perc-1].desc.split('.')[0]+'.';tip.style.opacity='1';}
+    });
+    this.spawnWalkers();
+    this.buildZonesUI();
+  },
+
+  spawnWalkers(){
+    const POOL={neutral:['🚶','🚶‍♂️','🚶‍♀️','🧍'],happy:['🎈','🏃‍♂️','🤸','📸','🍦','😄'],chaos:['🤮','🤬','😤','🔥','🚑','💩']};
+    const spawn=()=>{
+      const c=document.getElementById('walkers');if(!c)return;
+      const pool=POOL[this.mood];
+      const em=pool[Math.floor(Math.random()*pool.length)];
+      const v=document.createElement('div');v.className='walker';v.textContent=em;
+      v.style.top=Math.floor(Math.random()*85+5)+'vh';
+      const dur=Math.floor(Math.random()*5+(this.mood==='chaos'?7:13));
+      const left=Math.random()>.5;
+      v.style.animation=(left?'goL':'goR')+' '+dur+'s linear forwards, bob .45s infinite alternate';
+      c.appendChild(v);
+      setTimeout(()=>v.parentNode&&v.parentNode.removeChild(v),dur*1000);
+    };
+    for(let i=0;i<4;i++)setTimeout(spawn,Math.random()*1500);
+    setInterval(spawn,2000);
+  },
+
+  buildZonesUI(){
+    const c=document.getElementById('zones-container');if(!c)return;
+    c.innerHTML=ZONE_NAMES.map((nm,i)=>
+      '<div class="zone" id="z'+i+'"><div class="zone-label">'+ATTRACTIONS[i].emoji+' '+nm+'</div><div class="zone-art" id="za'+i+'"></div><div class="zone-score" id="zs'+i+'">—</div></div>'
+    ).join('');
+  },
+
+  updateZone(dim,score){
+    const z=document.getElementById('z'+dim);
+    const za=document.getElementById('za'+dim);
+    const zs=document.getElementById('zs'+dim);
+    if(!z)return;
+    this.dimScores[dim].push(score);
+    const avg=this.dimScores[dim].reduce((a,b)=>a+b,0)/this.dimScores[dim].length;
+    this.dimAvg[dim]=avg;
+    const curTier=avg<=3?1:avg<=6?2:3;
+    z.classList.remove('building');void z.offsetHeight;
+    z.className='zone lit building tier'+curTier;
+    setTimeout(()=>z.classList.remove('building'),700);
+    za.textContent=ART[dim][curTier];
+    zs.textContent=avg.toFixed(1)+'/9';
+    document.getElementById('park-map-wrap').classList.add('has-zones');
+    this.updateRating();
+    this.checkAsymmetry();
+  },
+
+  checkAsymmetry(){
+    const filled=this.dimAvg.filter(v=>v>0);if(filled.length<3)return;
+    const mx=Math.max(...filled),mn=Math.min(...filled);
+    if(mx-mn>=4){
+      const strip=document.getElementById('rating-strip');
+      let warn=document.getElementById('asy-live');
+      if(!warn){warn=document.createElement('span');warn.id='asy-live';warn.style.cssText='font-family:var(--px);font-size:clamp(12px,2.5vw,16px);color:#ff4400;margin-left:4px;animation:blink .6s step-end infinite;';strip.appendChild(warn);}
+      warn.textContent='ASIMETRIA +'+(mx-mn).toFixed(1);
+    }
+  },
+
+  updateRating(){
+    const filled=this.dimAvg.filter(v=>v>0);if(!filled.length)return;
+    const avg=filled.reduce((a,b)=>a+b,0)/filled.length;
+    const stars=Math.round(avg/9*5);
+    document.getElementById('rating-stars').textContent='★'.repeat(stars)+'☆'.repeat(5-stars);
+    document.getElementById('rating-num').textContent=avg.toFixed(1)+' / 9';
+    document.getElementById('rating-bar-fill').style.width=((avg/9)*100)+'%';
+    document.getElementById('rating-stars').style.color=stars<=1?'#cc4400':stars<=3?'#ccaa00':'#00cc44';
+  },
+
+  sw(from,to){
+    document.getElementById(from).classList.remove('active');
+    const el=document.getElementById(to);el.classList.add('active');
+    el.style.animation='none';void el.offsetHeight;el.style.animation='';
+    window.scrollTo({top:0,behavior:'smooth'});
+  },
+
+  start(){this.sw('s-start','s-quiz');this.renderQ();},
+
+  renderQ(){
+    const q=QS[this.curQ];this.sel=null;
+    const pct=Math.round((this.curQ/QS.length)*100);
+    const attr=ATTRACTIONS[q.dim];
+    document.getElementById('q-cnt').textContent=(this.curQ+1)+'/'+QS.length;
+    document.getElementById('q-dim-lbl').textContent=ZONE_NAMES[q.dim];
+    document.getElementById('q-pct').textContent=pct+'%';
+    document.getElementById('q-prog').style.width=pct+'%';
+    document.getElementById('btn-next').disabled=true;
+    const wh=document.getElementById('q-wh');if(wh)wh.style.background=attr.color;
+    const hdr=document.getElementById('q-hdr');if(hdr)hdr.textContent=attr.emoji+' '+attr.name;
+    const atE=document.getElementById('q-attr-emoji');if(atE)atE.textContent=attr.emoji;
+    const atN=document.getElementById('q-attr-name');if(atN)atN.textContent=attr.name;
+    const atT=document.getElementById('q-attr-tagline');if(atT)atT.textContent=attr.tagline;
+    const card=document.getElementById('q-card');
+    card.style.animation='none';void card.offsetHeight;card.style.animation='fadeUp .15s ease-out both';
+    document.getElementById('q-txt').textContent=q.text;
+    const LT=['A','B','C','D'];
+    const shuffled=[...q.opts].sort(()=>Math.random()-.5);
+    document.getElementById('q-opts').innerHTML=shuffled.map((o,i)=>
+      '<div class="opt" onclick="A.pick('+o.s+',this)"><div class="opt-l">'+LT[i]+'</div><div>'+o.t+'</div></div>'
+    ).join('');
+  },
+
+  pick(score,el){
+    this.sel=score;
+    document.querySelectorAll('.opt').forEach(b=>b.classList.remove('sel'));
+    el.classList.add('sel');
+    document.getElementById('btn-next').disabled=false;
+  },
+
+  next(){
+    if(this.sel===null)return;
+    const q=QS[this.curQ];
+    this.updateZone(q.dim,this.sel);
+    this.curQ++;
+    if(this.curQ<QS.length)this.renderQ();
+    else this.calc();
+  },
+
+  calc(){
+    this.sw('s-quiz','s-calc');
+    const lines=["Importando matrices operativas...","Auditando exposicion de datos y gobernanza...","Calculando friccion de adopcion real...","Evaluando silos y fragmentacion de inteligencia...","Generando diagnostico de madurez directiva..."];
+    let step=0;
+    const lineEl=document.getElementById('sus-line');
+    const mxEl=document.getElementById('sus-mx');
+    const fillEl=document.getElementById('sus-fill');
+    const chars='0123456789$!*#@%';
+    const dec=setInterval(()=>{let s='';for(let i=0;i<26;i++)s+=chars[Math.floor(Math.random()*chars.length)];if(mxEl)mxEl.textContent='AUDIT_'+s+'.EXE';},55);
+    const ticker=setInterval(()=>{
+      if(step<lines.length){if(lineEl)lineEl.textContent=lines[step];if(fillEl)fillEl.style.width=(((step+1)/lines.length)*100)+'%';step++;}
+      else{clearInterval(ticker);clearInterval(dec);setTimeout(()=>this.showRes(),300);}
+    },720);
+  },
+
+  showRes(){
+    const avgs=this.dimAvg.map((v,i)=>v>0?v:(this.dimScores[i].length?this.dimScores[i].reduce((a,b)=>a+b,0)/this.dimScores[i].length:2));
+    const total=avgs.reduce((a,b)=>a+b,0)/5;
+    const realN=Math.min(9,Math.max(1,Math.round(total)));
+    const lv=LV[realN-1];
+    const gap=this.perc-realN;
+    const mx=Math.max(...avgs),mn=Math.min(...avgs);
+    const asymDiff=mx-mn;
+    const hasAsym=asymDiff>=3;
+    const asymZoneHigh=ZONE_NAMES[avgs.indexOf(mx)];
+    const asymZoneLow=ZONE_NAMES[avgs.indexOf(mn)];
+
+    let archIcon,archLbl,flair,msg,hdrCls=null;
+    if(gap>=3){archIcon='';archLbl='PARQUE EN FASE DE PLANOS';hdrCls='danger';flair='>>> VISITANTES VOMITANDO EN LA ENTRADA <<<';msg='Te sobreestimaste '+gap+' niveles. Hay una brecha critica entre lo que el board cree y lo que pasa en la trinchera.';this.mood='chaos';document.body.classList.add('shake-once');setTimeout(()=>document.body.classList.remove('shake-once'),600);}
+    else if(gap===2||gap===1){archIcon='';archLbl='ATRACCION EN CONSTRUCCION';flair='>>> WARNING: BRECHA DE '+gap+' NIVEL'+(gap>1?'ES':'')+' <<<';msg=gap+' nivel(es) de diferencia. El equipo avanza, pero la infraestructura no esta a la altura del discurso directivo.';this.mood='neutral';}
+    else if(gap===0){archIcon='';archLbl='MAGNATE DEL PARQUE';hdrCls='success';flair='>>> RATING 10/10: PERCEPCION ALINEADA <<<';msg='Percepcion 100% alineada con la realidad. Eso es mas raro de lo que parece.';this.mood='happy';}
+    else if(gap===-1||gap===-2){archIcon='';archLbl='MEJOR DE LO ESPERADO';hdrCls='success';flair='>>> +'+Math.abs(gap)+' NIVEL'+(Math.abs(gap)>1?'ES':'')+' SOBRE TU ESTIMACION <<<';msg='Operas '+Math.abs(gap)+' nivel(es) mejor de lo que estimabas. El equipo ejecuto sin esperar permiso directivo.';this.mood='happy';}
+    else{archIcon='';archLbl='ZONA VIP DESBLOQUEADA';hdrCls='success';flair='>>> HIDDEN UNLOCK: +'+Math.abs(gap)+' NIVELES SOBRE EXPECTATIVA <<<';msg='El equipo supero la expectativa directiva por '+Math.abs(gap)+' niveles. Urgente: hazlo visible antes de que se pierda.';this.mood='happy';}
+
+    if(hdrCls)document.getElementById('res-wh').classList.add(hdrCls);
+    document.getElementById('r-arch').textContent=archIcon+' '+archLbl;
+    document.getElementById('r-flair').textContent=flair;
+    document.getElementById('r-nm').textContent=lv.name;
+    document.getElementById('r-desc').textContent=lv.desc;
+    document.getElementById('r-ex').innerHTML='<strong>EN LA PRACTICA:</strong> '+lv.example;
+    document.getElementById('r-risk').innerHTML='<strong>CUELLO DE BOTELLA:</strong> '+lv.risk;
+    document.getElementById('r-why').innerHTML='<strong>EL PROXIMO SALTO:</strong> '+lv.why;
+    document.getElementById('g-perc').textContent=this.perc;
+    document.getElementById('g-real').textContent=realN;
+    document.getElementById('g-msg').textContent=msg;
+
+    const sb=document.getElementById('sticky-bar');
+    if(sb){sb.style.display='flex';document.getElementById('sb-label').textContent='NIVEL '+realN+' — '+lv.name;document.getElementById('sb-gap').textContent=gap===0?'PERCEPCION ALINEADA':gap>0?'BRECHA: -'+gap+' NIVELES':'SUPERASTE +'+(Math.abs(gap))+' NIVELES';}
+
+    const gapMsg=document.getElementById('g-msg');
+    if(hasAsym&&gapMsg){
+      let ac=document.getElementById('asym-card');
+      if(!ac){ac=document.createElement('div');ac.id='asym-card';gapMsg.after(ac);}
+      ac.style.cssText='background:#1a0000;border:2px solid #cc4400;padding:12px 14px;font-size:13px;font-weight:bold;line-height:1.5;margin-bottom:16px;color:#ffaa88;display:none;';
+      ac.innerHTML='<span style="font-family:var(--px);font-size:clamp(15px,3.5vw,18px);color:#ff4400;">ASIMETRIA OPERATIVA: '+asymDiff.toFixed(1)+' PUNTOS</span><br><br>Zona mas fuerte: <strong style="color:#44ff88">'+asymZoneHigh+' ('+mx.toFixed(1)+'/9)</strong> vs mas debil: <strong style="color:#ff6644">'+asymZoneLow+' ('+mn.toFixed(1)+'/9)</strong>. La montana rusa mas cara del parque, con el estacionamiento cerrado.';
+    }
+
+    const rz=document.getElementById('result-zones');
+    if(rz)rz.innerHTML=ZONE_NAMES.map((nm,i)=>{
+      const sc=avgs[i];const tier=sc<=3?1:sc<=6?2:3;
+      const isMax=sc===mx&&hasAsym,isMin=sc===mn&&hasAsym;
+      const hl=isMax?'box-shadow:0 0 16px rgba(0,255,100,.4);border-color:#00cc44;':isMin?'box-shadow:0 0 16px rgba(255,60,0,.4);border-color:#cc2200;':'';
+      return '<div class="rzone tier'+tier+'" id="rz'+i+'" style="opacity:0;'+hl+'"><div class="rzone-label">'+nm+(isMax?' *':isMin?' !':'')+'</div><div class="rzone-art">'+ART[i][tier]+'</div><div class="rzone-score">'+sc.toFixed(1)+'/9</div></div>';
+    }).join('');
+
+    const isMax9=realN===9;
+    const nextLv=isMax9?null:LV[realN];
+    const foco2Title=isMax9?'FOCO 2: MANTENER EL NIVEL 9':'FOCO 2: DESBLOQUEAR NIVEL '+(realN+1)+(nextLv?' — '+nextLv.name:'');
+    const foco2Text=isMax9?'Estas en el nivel maximo. El riesgo es la complacencia. Reinverti en auditorias de guardarrailes eticos continuamente.':(nextLv?'Tu premisa operativa: "'+nextLv.why+'". Identifica un proceso para probar esto en 15 dias.':'');
+    const steps=[
+      {t:'FOCO 1: NEUTRALIZAR EL CUELLO DE BOTELLA',p:'El mayor freno hoy: "'+lv.risk+'". Esta semana asigna un responsable y una fecha limite. Sin duenio, no se mueve.'},
+      {t:foco2Title,p:foco2Text},
+      {t:'FOCO 3: CORTAR EL PUENTE VIEJO',p:'Ningun cambio sobrevive si el proceso analogico sigue disponible como fallback. Cuando implementes el Foco 2, genera friccion intencional en el metodo anterior.'}
+    ];
+    document.getElementById('ap-wrap').innerHTML=steps.map((s,i)=>'<div class="ap-step"><h4>'+s.t+'</h4><p id="ap'+i+'"></p></div>').join('');
+
+    const bars=ZONE_NAMES.map((nm,i)=>{
+      const emoji=['🎢','🎡','🌊','🍕','👻'][i];
+      return '  '+emoji+' '+nm.padEnd(11)+' ['+'█'.repeat(Math.round(avgs[i]))+'░'.repeat(9-Math.round(avgs[i]))+'] '+avgs[i].toFixed(1)+'/9';
+    }).join('\n');
+    const worstZone=ZONE_NAMES[avgs.indexOf(mn)];
+    const bestZone=ZONE_NAMES[avgs.indexOf(mx)];
+    const asymNarrative=hasAsym?'\n⚠️ Dato incómodo: '+bestZone+' ('+mx.toFixed(1)+'/9) vs '+worstZone+' ('+mn.toFixed(1)+'/9). Brecha de '+asymDiff.toFixed(1)+' pts. La montaña rusa más cara del parque, con el estacionamiento cerrado.':'';
+    const levelMap='📊 Los 9 niveles de madurez de IA:\n  1 — Awareness\n  2 — Shadow AI   ← 90% de las empresas están acá\n  3 — Tool Standardization\n  4 — Workflow Integration\n  5 — Business-Aware Systems\n  6 — Supervised Autonomy\n  7 — Role-Based AI Teammates\n  8 — Unified Intelligence Platform\n  9 — Adaptive Organization';
+    const closingQ='💬 ¿En qué nivel está tu empresa?\n(Sé honesto. El 90% se sobreestima.)';
+
+    // expectativa vs realidad block — clear and direct
+    const gapBlock=
+      '🤔 Lo que yo pensaba (expectativa): Nivel '+this.perc+' — '+LV[this.perc-1].name+'\n'+
+      '📍 Cómo es (realidad): Nivel '+realN+' — '+lv.name;
+
+    const intro='🎢 Hice el AI Maturity Test de Theme Park 1994, es gratis, rápido y divertido.\n\n';
+
+    let hook,body,cta;
+    if(gap>=3){
+      hook=intro+'El 90% de las empresas está en el Nivel 2 de madurez de IA.\n\n'+gapBlock+'\n\n🚨 Brecha de '+gap+' niveles.';
+      body='Podría no haberlo publicado.\n\nPero hay algo que aprendí: los líderes que se auditan en público generan más confianza que los que solo muestran los resultados buenos.\n\n📡 La radiografía real de mis 5 ejes:\n\n'+bars+asymNarrative+'\n\n'+levelMap+'\n\n🛑 Mi cuello de botella concreto:\n"'+lv.risk+'"\n\nEso no se arregla con un workshop de innovación ni con más licencias.\nSe arregla rediseñando procesos. Que nadie quiere hacer porque duele.\n\nEstoy trabajando en eso.';
+      cta='🎟️ Diagnóstico gratuito. Sin mail. Sin pitch.\nTarda 4 minutos. El parque se construye en tiempo real:\n👉 [Tu link aquí]\n\n'+closingQ;
+    } else if(gap===2||gap===1){
+      hook=intro+'El 90% de las empresas está en Nivel 2 de madurez de IA.\n\n'+gapBlock+'\n\n⚡ '+gap+' nivel'+(gap>1?'es':'')+' de diferencia. Casi — pero casi no cuenta.';
+      body='Lo interesante no es el número.\nEs el patrón que revela.\n\n📡 Mis 5 ejes operativos:\n\n'+bars+asymNarrative+'\n\n'+levelMap+'\n\n✅ Las herramientas están compradas.\n❌ Los procesos no cambiaron.\n\nEso genera un ROI de IA cercano a cero.\nNo por falta de tecnología. Por falta de rediseño.\n\n🛑 Cuello de botella real:\n"'+lv.risk+'"';
+      cta='🎟️ Diagnóstico gratuito. Sin mail.\n👉 [Tu link aquí]\n\n'+closingQ;
+    } else if(gap===0){
+      hook=intro+'El 90% de las empresas está en Nivel 2 de madurez de IA y no lo sabe.\n\n'+gapBlock+'\n\n✅ Cero brecha. No porque seamos excelentes. Porque sé exactamente dónde estamos.';
+      body='La ventaja competitiva más subestimada de 2025 no es tener la mejor IA.\nEs saber honestamente en qué nivel operás.\n\n📡 Mis 5 ejes:\n\n'+bars+asymNarrative+'\n\n'+levelMap+'\n\n🛑 Lo que estamos atacando esta semana:\n"'+lv.risk+'"\n\nLa mayoría de los directivos creen estar en el '+Math.min(9,realN+2)+' o el '+Math.min(9,realN+3)+'.\nCasi todos están en el 2.';
+      cta='🎟️ Diagnóstico gratuito. Sin mail. 4 minutos.\n👉 [Tu link aquí]\n\n'+closingQ;
+    } else if(gap===-1||gap===-2){
+      hook=intro+'El 90% de las empresas está en Nivel 2 de madurez de IA.\n\n'+gapBlock+'\n\n📈 Me equivoqué. Para bien.';
+      body='El equipo construyó infraestructura real mientras yo seguía creyendo que estábamos más atrás.\n\n📡 La radiografía:\n\n'+bars+asymNarrative+'\n\n'+levelMap+'\n\nCuando la trinchera avanza más rápido que el discurso directivo, hay dos caminos.\n\n❌ Camino A: ignorarlo.\n✅ Camino B: verlo, nombrarlo, formalizarlo, darle presupuesto.\n\nEstamos en el B.\n\n(Etiqueto al equipo. El mérito es completamente de ellos.)';
+      cta='🎟️ Diagnóstico gratuito. Sin mail.\n👉 [Tu link aquí]\n\n'+closingQ;
+    } else {
+      hook=intro+'El 90% de las empresas está en Nivel 2 de madurez de IA.\n\n'+gapBlock+'\n\n🌟 Mientras yo hacía el diagnóstico, el equipo ya había construido el parque.';
+      body=Math.abs(gap)+' niveles por encima de lo que estimaba.\n\nEsto es lo que pasa cuando contratás gente mejor que vos y les das espacio real.\n\n📡 La radiografía:\n\n'+bars+asymNarrative+'\n\n'+levelMap+'\n\nNo lo sabía porque nunca lo había medido.\nEse es el sesgo más caro de un directivo:\nconfundir el discurso con la realidad operativa.\n\n🏆 El mérito es 100% de ellos.';
+      cta='🎟️ Si querés saber dónde está tu empresa de verdad:\n👉 [Tu link aquí]\n\nGratis. Sin formulario.\n\n'+closingQ;
+    }
+
+    document.getElementById('li-pre').textContent=hook+'\n\n'+body+'\n\n━━━━━━━━━━━━━━━━━━━━━━\n'+cta+'\n\n#InteligenciaArtificial #Liderazgo #TransformacionDigital';
+
+    this.sw('s-calc','s-res');
+
+    const cd=document.getElementById('reveal-countdown');
+    const cdNum=document.getElementById('countdown-num');
+    if(cd){
+      cd.style.display='block';
+      let count=3;
+      const tick=setInterval(()=>{
+        count--;
+        if(count>0){if(cdNum)cdNum.textContent=count;}
+        else{clearInterval(tick);cd.style.display='none';this._doReveal(avgs,realN,hasAsym,steps);}
+      },700);
+    } else {this._doReveal(avgs,realN,hasAsym,steps);}
+  },
+
+  _doReveal(avgs,realN,hasAsym,steps){
+    const show=id=>{const el=document.getElementById(id);if(el)el.style.display='';};
+    const showFlex=id=>{const el=document.getElementById(id);if(el)el.style.display='flex';};
+    const showBlock=id=>{const el=document.getElementById(id);if(el)el.style.display='block';};
+    showBlock('park-banner');
+    const prw=document.getElementById('park-reveal-wrap');if(prw)prw.style.display='block';
+    setTimeout(()=>{
+      ZONE_NAMES.forEach((_,i)=>{
+        setTimeout(()=>{
+          const el=document.getElementById('rz'+i);
+          if(el){el.style.opacity='1';el.classList.add('revealed');}
+          if(this.mood==='happy'||this.mood==='neutral'){
+            const w=document.createElement('div');
+            const pool=['🎈','🎡','🎢','🎠','🤸','😄','📸','🍦'];
+            w.style.cssText='position:absolute;font-size:clamp(13px,1.8vw,17px);pointer-events:none;z-index:5;top:'+Math.floor(Math.random()*60+20)+'%;animation:goR '+Math.floor(Math.random()*4+6)+'s linear forwards,bob .4s infinite alternate;';
+            w.textContent=pool[Math.floor(Math.random()*pool.length)];
+            const prwEl=document.getElementById('park-reveal-wrap');
+            if(prwEl){prwEl.appendChild(w);setTimeout(()=>w.parentNode&&w.parentNode.removeChild(w),10000);}
+          }
+        },i*220);
+      });
+    },100);
+    const base=ZONE_NAMES.length*220;
+    setTimeout(()=>{showBlock('res-hero-block');this.animVal('r-num',0,realN,700);},base+300);
+    setTimeout(()=>{showFlex('gap-block');show('g-msg');const ac=document.getElementById('asym-card');if(ac)ac.style.display='block';},base+800);
+    setTimeout(()=>{showBlock('radar-block');this.drawRadar(avgs);},base+1100);
+    setTimeout(()=>{showBlock('ap-block');this.tw('ap0',steps[0].p,7,()=>this.tw('ap1',steps[1].p,7,()=>this.tw('ap2',steps[2].p,7,()=>{})));},base+1400);
+    setTimeout(()=>{showBlock('social-block');showBlock('restart-block');showBlock('credits-block');},base+1800);
+  },
+
+  drawRadar(avgs){
+    const canvas=document.getElementById('radarCanvas');if(!canvas)return;
+    const box=canvas.parentElement.getBoundingClientRect();
+    const sz=Math.max(160,Math.floor(Math.min(box.width-20,320)));
+    canvas.width=sz;canvas.height=sz;
+    const ctx=canvas.getContext('2d');
+    const cx=sz/2,cy=sz/2,R=sz*0.3,N=5;
+    const labels=["ESTRATEGIA","GOBERNANZA","DATOS","ADOPCION","AUTONOMIA"];
+    let prog=0;
+    const draw=()=>{
+      ctx.clearRect(0,0,sz,sz);
+      for(let r=1;r<=3;r++){ctx.beginPath();for(let i=0;i<N;i++){const a=(2*Math.PI/N)*i-Math.PI/2;const rv=R*(r/3);i===0?ctx.moveTo(cx+Math.cos(a)*rv,cy+Math.sin(a)*rv):ctx.lineTo(cx+Math.cos(a)*rv,cy+Math.sin(a)*rv);}ctx.closePath();ctx.strokeStyle='#ccc';ctx.lineWidth=1;ctx.stroke();}
+      for(let i=0;i<N;i++){const a=(2*Math.PI/N)*i-Math.PI/2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);ctx.strokeStyle='#bbb';ctx.lineWidth=1;ctx.stroke();const lx=cx+Math.cos(a)*(R+22),ly=cy+Math.sin(a)*(R+16);ctx.fillStyle='#000080';ctx.font='bold '+Math.max(8,Math.floor(sz*.032))+'px Tahoma,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(labels[i],lx,ly);}
+      ctx.beginPath();const px=[],py=[];
+      for(let i=0;i<N;i++){const a=(2*Math.PI/N)*i-Math.PI/2;const norm=(avgs[i]-1)/8;const r=R*norm*prog;px.push(cx+Math.cos(a)*r);py.push(cy+Math.sin(a)*r);i===0?ctx.moveTo(px[0],py[0]):ctx.lineTo(px[i],py[i]);}
+      ctx.closePath();ctx.fillStyle='rgba(0,90,200,0.3)';ctx.fill();ctx.strokeStyle='#000080';ctx.lineWidth=2;ctx.stroke();
+      for(let i=0;i<N;i++){ctx.beginPath();ctx.arc(px[i],py[i],4,0,2*Math.PI);ctx.fillStyle='#ffdd00';ctx.fill();ctx.strokeStyle='#000';ctx.lineWidth=1.5;ctx.stroke();}
+      prog+=0.05;if(prog<1)requestAnimationFrame(draw);
+    };
+    draw();
+  },
+
+  tw(id,txt,spd,cb){const el=document.getElementById(id);if(!el){if(cb)cb();return;}let i=0;el.textContent='';const t=()=>{if(i<txt.length){el.textContent+=txt[i++];setTimeout(t,spd);}else if(cb)cb();};t();},
+  animVal(id,s,e,dur){const el=document.getElementById(id);if(!el)return;let t0=null;const step=ts=>{if(!t0)t0=ts;const p=Math.min((ts-t0)/dur,1);el.textContent=Math.floor(p*(e-s)+s);if(p<1)requestAnimationFrame(step);else el.textContent=e;};requestAnimationFrame(step);},
+  copy(btn){navigator.clipboard.writeText(document.getElementById('li-pre').textContent).then(()=>{const o=btn.textContent;btn.textContent='COPIADO!';setTimeout(()=>btn.textContent=o,3000);});}
+};
+
+document.addEventListener('DOMContentLoaded',()=>A.init());
+</script>
+</body>
+</html>
